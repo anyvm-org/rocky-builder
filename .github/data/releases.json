@@ -1,0 +1,77 @@
+{
+  "os": "rocky",
+  "releases": [
+    {
+      "tag": "9",
+      "release": "9",
+      "arch": "x86_64",
+      "sync": "rsync,scp,nfs,tar",
+      "shutdown": "shutdown -h now",
+      "desktop": false,
+      "build": true
+    },
+    {
+      "tag": "9-aarch64",
+      "release": "9",
+      "arch": "aarch64",
+      "sync": "rsync,scp,nfs,tar",
+      "shutdown": "shutdown -h now",
+      "desktop": false,
+      "build": true
+    },
+    {
+      "tag": "9-s390x",
+      "release": "9",
+      "arch": "s390x",
+      "sync": "rsync,scp,nfs,tar",
+      "shutdown": "shutdown -h now",
+      "desktop": false,
+      "build": true
+    },
+    {
+      "tag": "9-ppc64le",
+      "release": "9",
+      "arch": "ppc64le",
+      "sync": "rsync,scp,nfs,tar",
+      "shutdown": "shutdown -h now",
+      "desktop": false,
+      "build": true
+    },
+    {
+      "tag": "10",
+      "release": "10",
+      "arch": "x86_64",
+      "sync": "rsync,scp,nfs,tar",
+      "shutdown": "shutdown -h now",
+      "desktop": false,
+      "build": true
+    },
+    {
+      "tag": "10-aarch64",
+      "release": "10",
+      "arch": "aarch64",
+      "sync": "rsync,scp,nfs,tar",
+      "shutdown": "shutdown -h now",
+      "desktop": false,
+      "build": true
+    },
+    {
+      "tag": "10-s390x",
+      "release": "10",
+      "arch": "s390x",
+      "sync": "rsync,scp,nfs,tar",
+      "shutdown": "shutdown -h now",
+      "desktop": false,
+      "build": true
+    },
+    {
+      "tag": "10-ppc64le",
+      "release": "10",
+      "arch": "ppc64le",
+      "sync": "rsync,scp,nfs,tar",
+      "shutdown": "shutdown -h now",
+      "desktop": false,
+      "build": true
+    }
+  ]
+}
