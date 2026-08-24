@@ -1,0 +1,94 @@
+name: "Step 2, Generate the project from Base builder"
+on:
+  schedule:
+    - cron: '10 22 * * *'
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'conf/*'
+      - 'hooks/*'
+      - '.github/data/*'
+      - '.github/workflows/generate.yml'
+
+    
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with: 
+          token: ${{ secrets.VM_TOKEN }}
+          fetch-depth: '2'
+
+      - name: Preparing env variables
+        run: |
+          git switch main || (git fetch --all && git checkout -b main origin/main)
+          git clone https://github.com/anyvm-org/base-builder.git
+          python3 base-builder/gendata.py
+          . conf/all.release.conf
+          echo "ALL_RELEASES=$ALL_RELEASES" >> $GITHUB_ENV
+          mkdir -p .github/tpl
+          cat base-builder/.github/tpl/README.tpl.md >.github/tpl/README.tpl.md
+
+      - name: Generate files
+        uses: anyvm-org/template-render@v0.0.4
+        with:
+          datafile: .github/data/datafile.ini
+          files: |
+            base-builder/.github/tpl/build.tpl.yml : .github/workflows/build.yml
+            base-builder/.github/tpl/manual.tpl.yml : .github/workflows/manual.yml
+            base-builder/.github/tpl/watch.tpl.yml : .github/workflows/watch.yml
+            base-builder/.github/FUNDING.yml : .github/FUNDING.yml
+            base-builder/.github/workflows/readme.yml : .github/workflows/readme.yml
+            base-builder/.github/workflows/rerun.yml : .github/workflows/rerun.yml
+            base-builder/build.py : build.py
+
+      - name: Commit and push changes
+        run: |
+          git config user.email "ghactions@anyvm.org"
+          git config user.name "Generate.yml"
+          # conf/all.release.conf is deliberately NOT in this list: it is
+          # the hand-owned build switch (committed by the maintainer or
+          # the watcher), never a gendata output.
+          for f in .github/data/table.md .github/data/desktop.md .github/data/releases.json; do
+            test -f "$f" && git add "$f"
+          done
+          git add \
+            .github/workflows/readme.yml \
+            .github/workflows/rerun.yml \
+            .github/workflows/manual.yml \
+            .github/workflows/build.yml \
+            .github/workflows/watch.yml \
+            .github/tpl/README.tpl.md \
+            .github/FUNDING.yml \
+            build.py
+          if git diff --cached --quiet; then
+            echo "Nothing to commit, skipping push"
+          else
+            git commit -m "Update ${{ github.repository }} from base builder"
+            # Step 1 (syncbase) and the version bumper push to main within
+            # seconds of this job, so the ref can move between the rebase and
+            # the push -- GitHub then rejects with "cannot lock ref ... is at
+            # X but expected Y" and the run goes red even though the next
+            # regen produces the same content. Rebase and retry instead.
+            pushed=""
+            for attempt in 1 2 3 4 5; do
+              git pull --rebase --autostash
+              if git push; then
+                pushed=yes
+                break
+              fi
+              echo "push rejected (attempt ${attempt}), retrying in ${attempt}s"
+              sleep "${attempt}"
+            done
+            if [ -z "$pushed" ]; then
+              echo "push still rejected after 5 attempts"
+              exit 1
+            fi
+          fi
+
+
+
+
