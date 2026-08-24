@@ -1,0 +1,164 @@
+name: "Build"
+
+permissions:
+  contents: write
+  packages: write
+
+on:
+  push:
+    branches:
+      - '*'
+    paths:
+      - 'build.py'
+      - '.github/workflows/build.yml'
+      - '*.txt'
+      - 'conf/*'
+      - 'hooks/*'
+      # files/ decides what gets built just as much as hooks/ does: the
+      # patched QEMU sources and build scripts (netbsd, openbsd, ubuntu,
+      # riscos), reactos's anyvmtd.c and inject.sh, riscos's agent and its
+      # FileCore injector. Without this a fix to any of them lands on main
+      # and nothing rebuilds -- riscos-builder pushed a rofilecore.py fix and
+      # no run started at all.
+      - 'files/*'
+  pull_request:
+    branches:
+      - '*'
+    paths:
+      - 'build.py'
+      - '.github/workflows/build.yml'
+      - '*.txt'
+      - 'conf/*'
+      - 'hooks/*'
+      # files/ decides what gets built just as much as hooks/ does: the
+      # patched QEMU sources and build scripts (netbsd, openbsd, ubuntu,
+      # riscos), reactos's anyvmtd.c and inject.sh, riscos's agent and its
+      # FileCore injector. Without this a fix to any of them lands on main
+      # and nothing rebuilds -- riscos-builder pushed a rofilecore.py fix and
+      # no run started at all.
+      - 'files/*'
+  workflow_dispatch:
+
+  release:
+    types: [ created ]
+
+
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["9", "9-aarch64", "9-ppc64le", "9-s390x", "10", "10-aarch64", "10-ppc64le", "10-s390x"]
+    runs-on: ubuntu-24.04
+    steps:
+#    - name: Free Disk Space (Ubuntu)
+#      uses: jlumbroso/free-disk-space@main
+#      with:
+#        # this might remove tools that are actually needed,
+#        # if set to "true" but frees about 6 GB
+#        tool-cache: false
+    - uses: actions/checkout@v7
+    - name: Creating Web console
+      uses: anyvm-org/cf-tunnel@v0
+      id: tunnel
+      with:
+        protocol: http
+        port: 8000
+    - run: |
+        python3 build.py conf/rocky-${{ matrix.os }}.conf
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v7
+      with:
+        # One artifact per matrix job, so they don't collide and each can be
+        # downloaded independently from the run page.
+        name: rocky-${{ matrix.os }}
+        # build.py writes all generated files (including these release
+        # artifacts) under build/ to keep the repo root clean; see wf().
+        path: |
+          build/rocky-${{ matrix.os }}.qcow2.zst*
+          build/rocky-${{ matrix.os }}-id_rsa.pub
+          build/rocky-${{ matrix.os }}-host.id_rsa
+          build/rocky-${{ matrix.os }}.qemu
+          build/rocky-${{ matrix.os }}.profile.json
+        if-no-files-found: warn
+        # qcow2.zst is already maximally compressed; gzip-recompressing the
+        # bundle just burns CPU for ~0 savings.
+        compression-level: 0
+        # Auto-expire to keep the repo's artifact storage quota from growing
+        # unboundedly. Two days is enough for a human to grab a copy for
+        # local verification; anything that needs to persist longer should
+        # cut a release (which goes through the Upload Release Asset step
+        # below and lives forever).
+        retention-days: 2
+    - name: Upload Release Asset
+      # Gate on the event, not github.ref: for a 'release' event github.ref is
+      # NOT guaranteed to be refs/tags/<tag> -- depending on how the release/tag
+      # is created it can come through as refs/heads/<target_commitish> (e.g.
+      # refs/heads/main), which silently skips the upload. event_name is stable.
+      if: "github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')"
+      id: upload-release-asset
+      uses: softprops/action-gh-release@v3
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        # action-gh-release derives the tag from github.ref by default, but on a
+        # 'release' event github.ref can be refs/heads/<branch> (not a tag), which
+        # fails with "GitHub Releases requires a tag". Pass the tag explicitly:
+        # release event -> github.event.release.tag_name; tag push -> github.ref_name.
+        tag_name: ${{ github.event.release.tag_name || github.ref_name }}
+        files: |
+          build/rocky-${{ matrix.os }}.qcow2.zst*
+          build/rocky-${{ matrix.os }}-id_rsa.pub
+          build/rocky-${{ matrix.os }}-host.id_rsa
+          build/rocky-${{ matrix.os }}.qemu
+          build/rocky-${{ matrix.os }}.profile.json
+
+
+  # Publish the generated release index (gendata's .github/data/releases.json)
+  # as a release asset, so external consumers reference it by an explicit
+  # builder version -- .../releases/download/v<ver>/releases.json -- exactly
+  # like the images and their sidecars. The index and the images it describes
+  # are then a matched, reproducible pair from one release; nothing downstream
+  # has to read a moving branch through raw.githubusercontent.
+  # A single job, NOT part of the build matrix: every matrix job uploading the
+  # same asset name in parallel would race (GitHub rejects duplicate asset
+  # names), and the index must publish even if one image build fails.
+  release-index:
+    # Gate on the event, not github.ref: a 'release' event's github.ref can be
+    # refs/heads/<branch>, which silently skips the upload. event_name is stable.
+    if: "github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')"
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v7
+    - name: Upload release index Asset
+      uses: softprops/action-gh-release@v3
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        # Pass the tag explicitly, same reason as the step above.
+        tag_name: ${{ github.event.release.tag_name || github.ref_name }}
+        files: |
+          .github/data/releases.json
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
