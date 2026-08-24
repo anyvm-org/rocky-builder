@@ -65,4 +65,9 @@ while [ "$_n" -lt 240 ]; do
   _n=$((_n + 1))
 done
 
+if [ "$_n" -ge 240 ]; then
+  echo "sshd did not answer after 240 attempts" >&2
+  exit 1
+fi
+
 sleep 5
