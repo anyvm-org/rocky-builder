@@ -53,7 +53,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["9", "9-aarch64", "9-ppc64le", "9-s390x", "10", "10-aarch64", "10-ppc64le", "10-s390x"]
+        os: ["9", "9-aarch64", "9-s390x", "10", "10-aarch64", "10-ppc64le", "10-s390x"]
     runs-on: ubuntu-24.04
     steps:
 #    - name: Free Disk Space (Ubuntu)

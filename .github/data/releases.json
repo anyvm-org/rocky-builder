@@ -29,15 +29,6 @@
       "build": true
     },
     {
-      "tag": "9-ppc64le",
-      "release": "9",
-      "arch": "ppc64le",
-      "sync": "rsync,scp,nfs,tar",
-      "shutdown": "shutdown -h now",
-      "desktop": false,
-      "build": true
-    },
-    {
       "tag": "10",
       "release": "10",
       "arch": "x86_64",

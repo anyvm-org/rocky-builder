@@ -3,7 +3,7 @@
 | Release | x86_64 | aarch64 | s390x | ppc64le |
 |---------|---------|---------|---------|---------|
 | 10 | ✅ (rsync,scp,nfs,tar) | ✅ (rsync,scp,nfs,tar) | ✅ (rsync,scp,nfs,tar) | ✅ (rsync,scp,nfs,tar) |
-| 9 | ✅ (rsync,scp,nfs,tar) | ✅ (rsync,scp,nfs,tar) | ✅ (rsync,scp,nfs,tar) | ✅ (rsync,scp,nfs,tar) |
+| 9 | ✅ (rsync,scp,nfs,tar) | ✅ (rsync,scp,nfs,tar) | ✅ (rsync,scp,nfs,tar) | — |
 
 
 No `sshfs` cell is listed for any release: `fuse-sshfs` is not packaged in
